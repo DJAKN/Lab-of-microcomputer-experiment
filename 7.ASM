@@ -32,7 +32,7 @@ INOUT:
         JG  CONT2
         CMP DH, 30
         JG CONT1
-	CALL DARK 
+		CALL DARK 
         JMP CONT2
 CONT0:
         CALL YELLOW
@@ -62,19 +62,19 @@ CONT2:
         OUT DX, AL
         CALL DELAY
 
-        ;MAYBE THESE THREE SENTENCES SHOULDN'T BE HERE
+       ; MAYBE THESE THREE SENTENCES SHOULDN'T BE HERE
        ; MOV DX, 0E489H
        ; MOV AL, 33
        ; OUT DX, AL
 
-        ;DISPLAY THE FIRST DIGIT
+       ;DISPLAY THE FIRST DIGIT
        ;MOV AL, BL
         MOV DX, 0E488H
        ;OUT DX, AL
         MOV BL, 1H
         MOV AL, BL
         OUT DX, AL
-	PUSH BX
+		PUSH BX
         MOV AL, CL
         MOV BX, OFFSET LED
         XLAT
@@ -86,21 +86,21 @@ SYMBOL:
         JMP INOUT
 CONT3:
         ;DISPLAY THE THIRD DIGIT
-	POP BX
+		POP BX
        ; MOV AL, BL
         MOV DX, 0E488H
        ; OUT DX, AL
         MOV BL, 10H
         MOV AL, BL
         OUT DX, AL
-	PUSH BX
+		PUSH BX
         MOV AL, CL
         MOV BX, OFFSET LED
         XLAT
         MOV DX, 0E48AH
         OUT DX, AL
         CALL DELAY
-	POP BX
+		POP BX
         POP DX
         INC DH
         MOV AH, 1
@@ -113,6 +113,14 @@ CONT3:
         MOV AH, 4CH
         INT 21H
 CONT6:
+		CMP AL, 2BH
+		JE  KEEP_ON ;KEEP THE CURRENT STATE
+		CMP AL, 2DH
+		JE  TWINKLE ;TWINKLE
+		CMP AL, 2AH
+		JE  SWITCH  ;SWITCH TO THE OTHER STATE
+		CMP AL, 2FH
+		JE  OFF     ;KEEP ALL LEDS DARK
         CMP AL, 30H
         JL JX
         CMP AL, 39H
@@ -122,6 +130,50 @@ CONT6:
         JNE CHANGESINGLE
         MOV FUTURETENS, AL
         JMP JX
+KEEP_ON:
+		CMP CH, 0H
+		JNE KEEP_ON_N
+		CMP CL, 3
+		JE KEEP_ON_N
+		CALL YELLOW
+		JMP KEEP_ON_O
+KEEP_ON_N:
+		CALL SHINE
+KEEP_ON_O:
+		MOV AH, 1
+		INT 16H
+		JZ KEEP_ON
+		MOV AH, 7H
+        INT 21H
+        JMP JX
+TWINKLE:
+		PUSH CX
+		PUSH DX
+		MOV DH, 0H
+TWINKLE_LOOP:
+		CMP DH, 30
+		JLE TWINKLE_DARK
+		CALL YELLOW
+		JMP TWINKLE_THEN
+TWINKLE_DARK:
+		CALL DARK
+TWINKLE_THEN:
+		CMP DH, 3AH
+		JNE TWINKLE_INC
+		MOV DH, 0H
+		JMP TWINKLE_O
+TWINKLE_INC:
+		INC DH
+TWINKLE_O:
+		MOV AH, 1
+		INT 16H
+		JZ  TWINKLE
+		MOV AH, 7H
+        INT 21H
+        POP DX
+        POP CX
+        JMP JX
+        
 CHANGESINGLE:
         MOV FUTURESINGLE, AL
         MOV CH, FUTURETENS
